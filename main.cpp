@@ -24,6 +24,7 @@
 #include "stm32l475e_iot01_magneto.h"
 #include "stm32l475e_iot01_gyro.h"
 #include "stm32l475e_iot01_accelero.h"
+#include "buzzer.h"
 
 #if MBED_CONF_APP_USE_TLS_SOCKET
 #include "root_ca_cert.h"
@@ -34,6 +35,7 @@
 #endif // MBED_CONF_APP_USE_TLS_SOCKET
 
 DigitalOut led(LED1);
+mbed::Beep buzz(PA_15);
 static BufferedSerial serial_port(USBTX, USBRX);
 FileHandle *mbed::mbed_override_console(int fd)
 {
@@ -114,7 +116,7 @@ public:
         // if (!resolve_hostname(address)) {
         //     return;
         // }
-        const char * IP_ADDRESS = "192.168.141.14";
+        const char * IP_ADDRESS = "192.168.1.106"; // 192.168.141.14
         if(!address.set_ip_address(IP_ADDRESS)) {
             printf("Set IP address failed");
             return ;
@@ -235,6 +237,10 @@ public:
                 }
                 ++sample_num;
                 printf("\nSending sensor data (%d) to the server\n", sample_num);
+
+                // buzzer beep on
+                buzz.beep(262.0, 2000.0);    // freq, time(ms)
+
                 alarm = 0;
             }
 
