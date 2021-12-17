@@ -7,7 +7,7 @@ import time
 import random
 import requests
 
-HOST = '192.168.1.106' # '192.168.141.14' # Standard loopback interface address
+HOST = '192.168.184.14' # '192.168.141.14' # Standard loopback interface address
 PORT = 65431 # Port to listen on (use ports > 1023)
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -21,8 +21,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print('Received from socket server : ', data)
             # Line Notify
             line_url = "https://notify-api.line.me/api/notify"
-            # token = "iUiglrg6Qnn61xDI7malK9Yoc35eicrUeBoecGL1wFE"
-            token = "9I8GUpnFza2EiTthUAuyFq2ZuXmhTLTaz92lsbQf63M"
+            token = "iUiglrg6Qnn61xDI7malK9Yoc35eicrUeBoecGL1wFE"
+            #token = "9I8GUpnFza2EiTthUAuyFq2ZuXmhTLTaz92lsbQf63M"
             headers = {
                 "Authorization": "Bearer " + token, 
                 "Content-Type" : "application/x-www-form-urlencoded"

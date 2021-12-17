@@ -10,9 +10,9 @@
     },
     "target_overrides": {
         "*": {
-            "nsapi.default-wifi-security": "WPA",
-            "nsapi.default-wifi-ssid": "\"tong\"",
-            "nsapi.default-wifi-password": "\"86825493\"",
+            "nsapi.default-wifi-security": "WPA_WPA2",
+            "nsapi.default-wifi-ssid": "\"ricky\"",
+            "nsapi.default-wifi-password": "\"ricky871008\"",
             "platform.stdio-baud-rate": 9600,
             "mbed-trace.enable": false,
             "mbed-trace.max-level": "TRACE_LEVEL_DEBUG",

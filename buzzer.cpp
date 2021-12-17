@@ -18,7 +18,7 @@ void Beep::nobeep() {
 void Beep::beep(float freq, float time) {
  
     _pwm.period(1.0/freq);
-    _pwm.write(0.2);            // 50% duty cycle - beep on
+    _pwm.write(1);            // 50% duty cycle - beep on
     rtos::ThisThread::sleep_for(time);    // millisecond
     Beep::nobeep();             // turn off
 }

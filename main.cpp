@@ -116,7 +116,7 @@ public:
         // if (!resolve_hostname(address)) {
         //     return;
         // }
-        const char * IP_ADDRESS = "192.168.1.106"; // 192.168.141.14
+        const char * IP_ADDRESS = "192.168.184.14"; // 192.168.141.14
         if(!address.set_ip_address(IP_ADDRESS)) {
             printf("Set IP address failed");
             return ;
@@ -166,7 +166,7 @@ public:
         BSP_ACCELERO_Init();
 
         std::printf("Calibrating...\n");
-        int n = 40;
+        int n = 50;
         float ax0[n], ay0[n], az0[n], gx0[n], gy0[n], gz0[n];
         for(int i = 0; i < n; i++) {
             BSP_MAGNETO_GetXYZ(pMagDataXYZ);
@@ -178,7 +178,7 @@ public:
             gx0[i] = pGyroDataXYZ[0];
             gy0[i] = pGyroDataXYZ[1];
             gz0[i] = pGyroDataXYZ[2];
-            ThisThread::sleep_for(500);
+            ThisThread::sleep_for(200);
         }
         
         float ax0bar = average(ax0, sizeof(ax0) / sizeof(ax0[0])),
