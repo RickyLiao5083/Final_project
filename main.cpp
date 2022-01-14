@@ -25,6 +25,9 @@
 #include "stm32l475e_iot01_gyro.h"
 #include "stm32l475e_iot01_accelero.h"
 #include "buzzer.h"
+#include "MFRC522.h"
+#include "rfid.h"
+#include "GPS.h"
 
 #if MBED_CONF_APP_USE_TLS_SOCKET
 #include "root_ca_cert.h"
@@ -35,7 +38,11 @@
 #endif // MBED_CONF_APP_USE_TLS_SOCKET
 
 DigitalOut led(LED1);
-mbed::Beep buzz(PA_15);
+mbed::Beep buzz(D5); // PA_15
+MFRC522 *mfrc522 = new MFRC522(D11, D12, D13, D10, D8);  // rc522 module: (mosi, miso, sck, sda, rst)
+PwmOut pwm_lock(D9);
+// bool idSent = false;
+
 static BufferedSerial serial_port(USBTX, USBRX);
 FileHandle *mbed::mbed_override_console(int fd)
 {
@@ -43,7 +50,7 @@ FileHandle *mbed::mbed_override_console(int fd)
 }
 
 class SocketDemo {
-    static constexpr size_t MAX_NUMBER_OF_ACCESS_POINTS = 20;
+    static constexpr size_t MAX_NUMBER_OF_ACCESS_POINTS = 30;
     static constexpr size_t MAX_MESSAGE_RECEIVED_LENGTH = 100;
 
 #if MBED_CONF_APP_USE_TLS_SOCKET
@@ -116,7 +123,7 @@ public:
         // if (!resolve_hostname(address)) {
         //     return;
         // }
-        const char * IP_ADDRESS = "192.168.184.14"; // 192.168.141.14
+        const char * IP_ADDRESS = "192.168.110.200"; // 192.168.184.14
         if(!address.set_ip_address(IP_ADDRESS)) {
             printf("Set IP address failed");
             return ;
@@ -193,62 +200,96 @@ public:
 
         int alarm = 0;
         std::printf("Calibration finished.\nBeginning monitor...\n");
-        
+
+        RFID_Reader rfidReader(mfrc522);
+        printf("Scanning RFID...\n");
+
+        GPS gps(PA_0, PA_1, 9600);  // GPS module: (RX, TX)
+
+        bool lock = false;
 
         while(1) {
             
 
             led = 1;
 
-            //t = BSP_TSENSOR_ReadTemp();
-            //h = BSP_HSENSOR_ReadHumidity();
-            //p = BSP_PSENSOR_ReadPressure();
+            if (lock) {
+                // read sensor data
+                BSP_MAGNETO_GetXYZ(pMagDataXYZ);
+                BSP_GYRO_GetXYZ(pGyroDataXYZ);
+                BSP_ACCELERO_AccGetXYZ(pAccDataXYZ);
+                t = BSP_TSENSOR_ReadTemp();
+                h = BSP_HSENSOR_ReadHumidity();
+                p = BSP_PSENSOR_ReadPressure();
+                
+                int16_t ax = pAccDataXYZ[0], ay = pAccDataXYZ[1], az = pAccDataXYZ[2];
+                float gx = pGyroDataXYZ[0], gy = pGyroDataXYZ[1], gz = pGyroDataXYZ[2];
 
-            //led = 0;
+                // abs(gy - gy0bar) / gy0bar > 0.5
+                if (abs(ax - ax0bar) / ax0bar > 0.8 || abs(ay - ay0bar) / ay0bar > 0.8 || abs(az - az0bar) / az0bar > 0.06 || abs(gx - gx0bar) / gx0bar > 0.5 || abs(gz - gz0bar) / gz0bar > 0.5) {
+                    alarm += 1;
+                    led = 0;
+                }
+                else {
+                    alarm = 0;
+                }
+                if (alarm >= 10) {
+                    // buzzer beep on
+                    buzz.beep(262.0, 2000.0);    // freq, time(ms)
 
-            //ThisThread::sleep_for(1000);
+                    // gps location
+                    gps.sample();
+                    printf("longitude: %.4f%c, latitude: %.4f%c\n", gps.longitude, gps.ew, gps.latitude, gps.ns);
+                    
+                    int len = sprintf(acc_json,
+                    "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n\nTemperature:%.4f\nHumidity:%.4f\nPressure:%.4f\n\nlongitude:%.4f%c\nlatitude:%.4f%c\n",
+                    ax, ay, az, gx, gy, gz, t, h, p, gps.longitude, gps.ew, gps.latitude, gps.ns);
 
-            //led = 1;
+                    result = _socket.send(acc_json, len); 
+                    if (0 >= result){
+                        printf("Error sending: %d\n", result);
+                        return;
+                    }
+                    ++sample_num;
+                    printf("\nSending sensor data (%d) to the server\n", sample_num);
 
-            BSP_MAGNETO_GetXYZ(pMagDataXYZ);
-            BSP_GYRO_GetXYZ(pGyroDataXYZ);
-            BSP_ACCELERO_AccGetXYZ(pAccDataXYZ);
-            
-            //int16_t mx = pMagDataXYZ[0], my = pMagDataXYZ[1], mz = pMagDataXYZ[2];
-            int16_t ax = pAccDataXYZ[0], ay = pAccDataXYZ[1], az = pAccDataXYZ[2];
-            float gx = pGyroDataXYZ[0], gy = pGyroDataXYZ[1], gz = pGyroDataXYZ[2];
-
-            if (abs(ax - ax0bar) / ax0bar > 0.8 || abs(ay - ay0bar) / ay0bar > 0.8 || abs(az - az0bar) / az0bar > 0.06 || abs(gx - gx0bar) / gx0bar > 0.5 || abs(gy - gy0bar) / gy0bar > 0.5 || abs(gz - gz0bar) / gz0bar > 0.5) {
-                alarm += 1;
-                led = 0;
+                    alarm = 0;
+                }
+                // detect card
+                if(rfidReader.read())
+                {
+                    printf("=============================\n");
+                    printf("Unlock Safe Deposit Box\n");
+                    printf("Card ID: ");
+                    char id[2 * rfidReader.getSize()];
+                    rfidReader.getCharID(id);
+                    for(int i = 0; i < 8; ++i) printf("%c", id[i]);
+                    printf("\n=============================\n");
+                    lock = false;
+                    buzz.beep(262.0, 500.0);
+                    // unlock
+                    pwm_lock.period(0.05);
+                    pwm_lock.write(1.0);
+                    ThisThread::sleep_for(2000.0);
+                    pwm_lock.write(0.0);
+                }
             }
             else {
-                alarm = 0;
-            }
-            if (alarm >= 10) {
-                int len = sprintf(acc_json,
-                "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n",
-                ax, ay, az, gx, gy, gz);
-
-                result = _socket.send(acc_json, len); 
-                if (0 >= result){
-                    printf("Error sending: %d\n", result);
-                    return;
+                if(rfidReader.read())
+                {
+                    printf("=============================\n");
+                    printf("Lock Safe Deposit Box\n");
+                    printf("Card ID: ");
+                    char id[2 * rfidReader.getSize()];
+                    rfidReader.getCharID(id);
+                    for(int i = 0; i < 8; ++i) printf("%c", id[i]);
+                    printf("\n=============================\n");
+                    lock = true;
+                    buzz.beep(262.0, 500.0);
                 }
-                ++sample_num;
-                printf("\nSending sensor data (%d) to the server\n", sample_num);
-
-                // buzzer beep on
-                buzz.beep(262.0, 2000.0);    // freq, time(ms)
-
-                alarm = 0;
             }
 
             ThisThread::sleep_for(300);
-
-            //led = 0;
-
-            //ThisThread::sleep_for(1000);
         }
 
         printf("Demo concluded successfully \r\n");
