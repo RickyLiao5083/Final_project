@@ -123,7 +123,7 @@ public:
         // if (!resolve_hostname(address)) {
         //     return;
         // }
-        const char * IP_ADDRESS = "192.168.110.200"; // 192.168.184.14
+        const char * IP_ADDRESS = "192.168.0.13"; // 192.168.184.14
         if(!address.set_ip_address(IP_ADDRESS)) {
             printf("Set IP address failed");
             return ;
@@ -225,8 +225,8 @@ public:
                 int16_t ax = pAccDataXYZ[0], ay = pAccDataXYZ[1], az = pAccDataXYZ[2];
                 float gx = pGyroDataXYZ[0], gy = pGyroDataXYZ[1], gz = pGyroDataXYZ[2];
 
-                // abs(gy - gy0bar) / gy0bar > 0.5
-                if (abs(ax - ax0bar) / ax0bar > 0.8 || abs(ay - ay0bar) / ay0bar > 0.8 || abs(az - az0bar) / az0bar > 0.06 || abs(gx - gx0bar) / gx0bar > 0.5 || abs(gz - gz0bar) / gz0bar > 0.5) {
+                //abs(gy - gy0bar) / gy0bar > 0.5
+                if (abs(ax - ax0bar) / ax0bar > 0.8 || abs(ay - ay0bar) / ay0bar > 0.8 || abs(az - az0bar) / az0bar > 0.06 || abs(gx - gx0bar) / gx0bar > 0.5 || abs(gy - gy0bar) / gy0bar > 0.5 || abs(gz - gz0bar) / gz0bar > 0.5) {
                     alarm += 1;
                     led = 0;
                 }
@@ -242,7 +242,7 @@ public:
                     printf("longitude: %.4f%c, latitude: %.4f%c\n", gps.longitude, gps.ew, gps.latitude, gps.ns);
                     
                     int len = sprintf(acc_json,
-                    "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n\nTemperature:%.4f\nHumidity:%.4f\nPressure:%.4f\n\nlongitude:%.4f%c\nlatitude:%.4f%c\n",
+                    "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n\nTemperature:%.1fC\nHumidity:%.4f%%\nPressure:%.4fhPa\n\nGPS coordinate:\n%.4f%c, %.4f%c\n",
                     ax, ay, az, gx, gy, gz, t, h, p, gps.longitude, gps.ew, gps.latitude, gps.ns);
 
                     result = _socket.send(acc_json, len); 
@@ -266,11 +266,13 @@ public:
                     for(int i = 0; i < 8; ++i) printf("%c", id[i]);
                     printf("\n=============================\n");
                     lock = false;
-                    buzz.beep(262.0, 500.0);
+                    buzz.beep(262.0, 200.0);
+                    ThisThread::sleep_for(100.0);
+                    buzz.beep(262.0, 200.0);
                     // unlock
                     pwm_lock.period(0.05);
                     pwm_lock.write(1.0);
-                    ThisThread::sleep_for(2000.0);
+                    ThisThread::sleep_for(4000.0);
                     pwm_lock.write(0.0);
                 }
             }
@@ -286,6 +288,11 @@ public:
                     printf("\n=============================\n");
                     lock = true;
                     buzz.beep(262.0, 500.0);
+                    // unlock
+                    pwm_lock.period(0.05);
+                    pwm_lock.write(1.0);
+                    ThisThread::sleep_for(4000.0);
+                    pwm_lock.write(0.0);
                 }
             }
 
