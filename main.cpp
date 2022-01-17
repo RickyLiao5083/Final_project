@@ -123,7 +123,7 @@ public:
         // if (!resolve_hostname(address)) {
         //     return;
         // }
-        const char * IP_ADDRESS = "192.168.0.13"; // 192.168.184.14
+        const char * IP_ADDRESS = "192.168.99.14"; // 192.168.184.14
         if(!address.set_ip_address(IP_ADDRESS)) {
             printf("Set IP address failed");
             return ;
@@ -200,6 +200,11 @@ public:
 
         int alarm = 0;
         std::printf("Calibration finished.\nBeginning monitor...\n");
+        buzz.beep(262.0, 400.0);
+        ThisThread::sleep_for(50.0);
+        buzz.beep(262.0, 400.0);
+        ThisThread::sleep_for(50.0);
+        buzz.beep(262.0, 400.0);
 
         RFID_Reader rfidReader(mfrc522);
         printf("Scanning RFID...\n");
@@ -212,6 +217,7 @@ public:
             
 
             led = 1;
+
 
             if (lock) {
                 // read sensor data
