@@ -200,11 +200,13 @@ public:
 
         int alarm = 0;
         std::printf("Calibration finished.\nBeginning monitor...\n");
-        buzz.beep(262.0, 400.0);
+        buzz.tone(162.00, 300.0);
         ThisThread::sleep_for(50.0);
-        buzz.beep(262.0, 400.0);
+        buzz.tone(462.00, 300.0);
         ThisThread::sleep_for(50.0);
-        buzz.beep(262.0, 400.0);
+        buzz.tone(762.00, 300.0);
+        ThisThread::sleep_for(50.0);
+        buzz.tone(1062.00, 300.0);
 
         RFID_Reader rfidReader(mfrc522);
         printf("Scanning RFID...\n");
@@ -245,11 +247,11 @@ public:
 
                     // gps location
                     gps.sample();
-                    printf("longitude: %.4f%c, latitude: %.4f%c\n", gps.longitude, gps.ew, gps.latitude, gps.ns);
+                    printf("longitude: %.4f°%c, latitude: %.4f°%c\n", gps.longitude /100.0f, gps.ew, gps.latitude / 100.0f, gps.ns);
                     
                     int len = sprintf(acc_json,
-                    "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n\nTemperature:%.1fC\nHumidity:%.4f%%\nPressure:%.4fhPa\n\nGPS coordinate:\n%.4f%c, %.4f%c\n",
-                    ax, ay, az, gx, gy, gz, t, h, p, gps.longitude, gps.ew, gps.latitude, gps.ns);
+                    "\nAlarm!!!\nYour Intelligent Safe Deposit Box is detecting abnormal movement!\n\nACCELERO_X:%d\nACCELERO_Y:%d\nACCELERO_Z:%d\nGYRO_X:%.2f\nGYRO_Y:%.2f\nGYRO_Z:%.2f\n\nTemperature:%.1f°C\nHumidity:%.4f%%\nPressure:%.4fhPa\n\nGPS coordinate:\n%.4f°%c, %.4f°%c\n",
+                    ax, ay, az, gx, gy, gz, t, h, p, gps.longitude /100.0f, gps.ew, gps.latitude /100.0f, gps.ns);
 
                     result = _socket.send(acc_json, len); 
                     if (0 >= result){
@@ -302,7 +304,7 @@ public:
                 }
             }
 
-            ThisThread::sleep_for(300);
+            ThisThread::sleep_for(200);
         }
 
         printf("Demo concluded successfully \r\n");

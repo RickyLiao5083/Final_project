@@ -15,6 +15,8 @@ public:
     void beep (float frequency, float time);
 
     void nobeep();
+
+    void tone(float freq, float time);
  
 private :
     PwmOut _pwm;
